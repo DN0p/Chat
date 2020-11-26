@@ -1,5 +1,4 @@
 /* eslint-disable no-param-reassign */
-/* eslint-disable no-undef */
 import express from 'express'
 import path from 'path'
 import cors from 'cors'
@@ -29,6 +28,7 @@ try {
 
 const connections = []
 const userNames = {}
+const admins = []
 
 connectDatabase()
 
@@ -70,8 +70,7 @@ function createCookie(token, res) {
 }
 
 function getFormatMessages(messages) {
-  const formatedMessages = messages.map((it) => ({ [it.userName]: it.message }))
-  return formatedMessages
+  return messages.map((it) => ({ [it.userName]: it.message }))
 }
 
 server.get('/api/v1/auth', async (req, res) => {
@@ -120,7 +119,7 @@ server.use('/api/', (req, res) => {
 
 const [htmlStart, htmlEnd] = Html({
   body: 'separator',
-  title: 'Skillcrucial - Become an IT HERO'
+  title: 'Chat'
 }).split('separator')
 
 server.get('/', (req, res) => {
@@ -157,9 +156,10 @@ io.on('connection', (socket) => {
       const { userName, role } = await User.findById(user.uid)
       userNames[socket.id] = [userName, role]
       if (role.indexOf('admin') !== -1) {
-        socket.emit('all users', userNames)
+        admins.push(socket.id)
       }
       socket.join(currentRoom)
+      admins.map((it) => io.to(it).emit('all users', userNames))
     } catch {
       console.log('tried to login without token')
     }
@@ -170,7 +170,7 @@ io.on('connection', (socket) => {
     io.to(socket.id).emit('history messages', messages)
   })
 
-  socket.on('send mess', async ({ messages, currentRoom }) => {
+  socket.on('send message', async ({ messages, currentRoom }) => {
     try {
       const newMessage = new Message({
         userName: userNames[socket.id][0],
@@ -181,7 +181,8 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.log(`err${err}`)
     }
-    io.to(currentRoom).emit('new message', { [userNames[socket.id][0]]: messages })
+    const token = userNames[socket.id][0]
+    io.to(currentRoom).emit('new message', { [token]: messages })
   })
 
   socket.on('disconnect', () => {
@@ -201,6 +202,7 @@ io.on('connection', (socket) => {
     io.to(id).emit('delete cookie')
     io.of('/').sockets.get(id).disconnect()
     delete userNames[id]
+    admins.map((it) => io.to(it).emit('all users', userNames))
   })
 })
 

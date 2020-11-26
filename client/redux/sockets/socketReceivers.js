@@ -8,6 +8,8 @@ import store from '../index'
 
 export const socket = io('http://localhost:8090', { transports: ['websocket'], autoConnect: false })
 
+const START_UNIX_TIME = 2592000
+
 function Init() {
   socket.on('new message', (msg) => {
     store.dispatch(receivedNewMessage(msg))
@@ -37,7 +39,7 @@ function Init() {
 
   socket.on('delete cookie', () => {
     const cookie = new Cookies()
-    cookie.set('token', 0, { path: '/', expires: new Date(Date.now() - 2592000) })
+    cookie.set('token', 0, { path: '/', expires: new Date(Date.now() - START_UNIX_TIME) })
     store.dispatch(deleteUser())
   })
 }

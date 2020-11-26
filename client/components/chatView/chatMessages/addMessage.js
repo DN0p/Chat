@@ -12,7 +12,7 @@ const AddMessage = () => {
         type="button"
         className="text-3xl text-grey px-3 border-r-2 border-grey"
         onClick={() => {
-          socket.emit('send mess', { messages, currentRoom })
+          socket.emit('send message', { messages, currentRoom })
           dispatch(addMessage(''))
         }}
       >
